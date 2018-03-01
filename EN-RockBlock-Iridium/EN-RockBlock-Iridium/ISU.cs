@@ -594,6 +594,8 @@ namespace EN.RockBlockIridium
             throw new NotImplementedException();
         }
 
+        // TODO: Fill in functions from here
+
         public ATCommandResponse<RingIndicationStatus> GetRingIndicationStatus()
         {
             throw new NotImplementedException();
