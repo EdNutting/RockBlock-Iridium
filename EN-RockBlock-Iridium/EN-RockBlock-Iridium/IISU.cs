@@ -16,7 +16,7 @@ namespace EN.RockBlockIridium
         ATCommandResponse<bool> StoreCurrentConfiguration(int configuration);
         ATCommandResponse<bool> SetDefaultResetProfile(int configuration);
 
-        ATCommandResponse<List<SRegister>> DisplayRegisters();
+        ATCommandResponse<List<SRegister>> GetAllRegisters();
 
         ATCommandResponse<bool> FlushToEEPROM();
         

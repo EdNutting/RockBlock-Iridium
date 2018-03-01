@@ -50,6 +50,9 @@ namespace EN.RockBlockIridium
             {
                 Port.Open();
                 ResponseReadyEvent = new System.Threading.AutoResetEvent(false);
+                SBDRingEvent = new System.Threading.AutoResetEvent(false);
+                AutoRegEvent = new System.Threading.AutoResetEvent(false);
+                ServAvailChngEvent = new System.Threading.AutoResetEvent(false);
                 BuildingResponseLines = new List<string>();
                 BufferedResponseLines = new List<List<string>>();
             }
@@ -76,7 +79,7 @@ namespace EN.RockBlockIridium
 
         private void ProcessIncomingData(string data)
         {
-            Console.WriteLine(data);
+            //Console.WriteLine(data);
             string[] lines = data.Split("\r\n".ToCharArray());
             if (BuildingResponseLines.Count > 0)
             {
@@ -160,11 +163,6 @@ namespace EN.RockBlockIridium
         private void WaitForCommandResponse()
         {
             ResponseReadyEvent.WaitOne();
-            //while (BufferedResponseLines.Count == 0)
-            //{
-            //    string line = Port.ReadTo("\r").Replace("\n", "");
-            //    ProcessIncomingData(line);
-            //}
         }
 
         public void WaitForSBDRing()
@@ -237,7 +235,7 @@ namespace EN.RockBlockIridium
             {
                 List<string> ConfigLines = new List<string>();
                 string CurrentLine = "";
-                foreach(string line in lines)
+                foreach (string line in lines)
                 {
                     string tLine = line.Trim();
                     if (tLine.EndsWith(":") && !string.IsNullOrWhiteSpace(CurrentLine))
@@ -307,45 +305,256 @@ namespace EN.RockBlockIridium
 
         public ATCommandResponse<bool> StoreCurrentConfiguration(int configuration)
         {
-            throw new NotImplementedException();
+            IssueCommand(new BasicATCommand(BasicATCommand.Commands.StoreActiveConfig, configuration));
+            WaitForCommandResponse();
+            return ParseResponse(PopOldestLines(), (x, OK) => OK);
         }
         public ATCommandResponse<bool> SetDefaultResetProfile(int configuration)
         {
-            throw new NotImplementedException();
+            IssueCommand(new BasicATCommand(BasicATCommand.Commands.DesignateDefaultResetProfile, configuration));
+            WaitForCommandResponse();
+            return ParseResponse(PopOldestLines(), (x, OK) => OK);
         }
 
-        public ATCommandResponse<List<SRegister>> DisplayRegisters()
+        public ATCommandResponse<List<SRegister>> GetAllRegisters()
         {
-            throw new NotImplementedException();
+            IssueCommand(new BasicATCommand(BasicATCommand.Commands.DisplayRegisters, 0));
+            WaitForCommandResponse();
+            return ParseResponse(PopOldestLines(), (lines, OK) =>
+            {
+                List<SRegister> registers = new List<SRegister>();
+                for (int i = 1; i < lines.Count; i++)
+                {
+                    if (!string.IsNullOrWhiteSpace(lines[i]))
+                    {
+                        string[] lineParts = lines[i].Split(" ".ToCharArray());
+                        if (lineParts.Length > 1)
+                        {
+                            registers.Add(new SRegister(int.Parse(lineParts[0].Substring(1)), int.Parse(lineParts[1])));
+                        }
+                        if (lineParts.Length > 4)
+                        {
+                            registers.Add(new SRegister(int.Parse(lineParts[4].Substring(1)), int.Parse(lineParts[5])));
+                        }
+                    }
+                }
+                return registers;
+            });
         }
 
         public ATCommandResponse<bool> FlushToEEPROM()
         {
-            throw new NotImplementedException();
+            IssueCommand(new BasicATCommand(BasicATCommand.Commands.FlushToEEPROM, 0));
+            WaitForCommandResponse();
+            return ParseResponse(PopOldestLines(), (x, OK) => OK);
         }
 
-        public int TrafficChannelRate { get; }
-        public int ROMChecksum { get; }
-        public bool ROMChecksumOK { get; }
-        public int SoftwareRevisionLevel { get; }
-        public string ProductDescription { get; }
-        public string CountryCode { get; }
-        public string FactoryIdentity { get; }
-        public string HardwareSpecification { get; }
+        public int TrafficChannelRate
+        {
+            get
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.Identification, 0));
+                WaitForCommandResponse();
+                return ParseResponse(PopOldestLines(), (lines, OK) => int.Parse(lines[0])).Data;
+            }
+        }
+        public int ROMChecksum
+        {
+            get
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.Identification, 1));
+                WaitForCommandResponse();
+                return ParseResponse(PopOldestLines(), (lines, OK) => int.Parse(lines[0])).Data;
+            }
+        }
+        public bool ROMChecksumOK
+        {
+            get
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.Identification, 2));
+                WaitForCommandResponse();
+                return ParseResponse(PopOldestLines(), (lines, OK) => lines[0] == "OK").Data;
+            }
+        }
+        public int SoftwareRevisionLevel
+        {
+            get
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.Identification, 3));
+                WaitForCommandResponse();
+                return ParseResponse(PopOldestLines(), (lines, OK) => int.Parse(lines[0])).Data;
+            }
+        }
+        public string ProductDescription
+        {
+            get
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.Identification, 4));
+                WaitForCommandResponse();
+                return ParseResponse(PopOldestLines(), (lines, OK) => lines[0]).Data;
+            }
+        }
+        public string CountryCode
+        {
+            get
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.Identification, 5));
+                WaitForCommandResponse();
+                return ParseResponse(PopOldestLines(), (lines, OK) => lines[0]).Data;
+            }
+        }
+        public string FactoryIdentity
+        {
+            get
 
-        public bool EchoEnabled { get; set; }
-        public QuietModes QuietMode { get; set; }
-        public VerbosityModes VerbosityMode { get; set; }
-        public bool DTROption { get; set; }
-        public FlowControls FlowControl { get; set; }
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.Identification, 6));
+                WaitForCommandResponse();
+                return ParseResponse(PopOldestLines(), (lines, OK) => lines[0]).Data;
+            }
+        }
+        public string HardwareSpecification
+        {
+            get
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.Identification, 7));
+                WaitForCommandResponse();
+                return ParseResponse(PopOldestLines(), (lines, OK) => lines[0]).Data;
+            }
+        }
 
-        public bool RadioEnabled { get; set; }
+        public bool EchoEnabled
+        {
+            get
+            {
+                var conf = GetConfigurations().Find(x => x.Name == "ACTIVE PROFILE");
+                return conf.EchoEnabled;
+            }
+            set
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.Echo, value ? 1 : 0));
+                WaitForCommandResponse();
+                PopOldestLines();
+            }
+        }
+        public QuietModes QuietMode
+        {
+            get
+            {
+                var conf = GetConfigurations().Find(x => x.Name == "ACTIVE PROFILE");
+                return conf.QuietMode;
+            }
+            set
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.QuietMode, (int)value));
+                WaitForCommandResponse();
+                PopOldestLines();
+            }
+        }
+        public VerbosityModes VerbosityMode
+        {
+            get
+            {
+                var conf = GetConfigurations().Find(x => x.Name == "ACTIVE PROFILE");
+                return conf.VerbosityMode;
+            }
+            set
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.VerboseMode, (int)value));
+                WaitForCommandResponse();
+                PopOldestLines();
+            }
+        }
+        public bool DTROption
+        {
+            get
+            {
+                var conf = GetConfigurations().Find(x => x.Name == "ACTIVE PROFILE");
+                return conf.DTROption;
+            }
+            set
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.DTROption, value ? 2 : 0));
+                WaitForCommandResponse();
+                PopOldestLines();
+            }
+        }
+        public FlowControls FlowControl
+        {
+            get
+            {
+                var conf = GetConfigurations().Find(x => x.Name == "ACTIVE PROFILE");
+                return conf.FlowControl;
+            }
+            set
+            {
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.FlowControl, (int)value));
+                WaitForCommandResponse();
+                PopOldestLines();
+            }
+        }
 
-        public int? RealTimeClock { get; }
-        public string ManufacturerIdentity { get; }
-        public string ModelIdentity { get; }
-        public string Revision { get; }
-        public string SerialNumber { get; }
+        private bool _RadioEnabled = false;
+        public bool RadioEnabled
+        {
+            get
+            {
+                return _RadioEnabled;
+            }
+            set
+            {
+                _RadioEnabled = value;
+                IssueCommand(new BasicATCommand(BasicATCommand.Commands.RadioActivity, value ? 1 : 0));
+                WaitForCommandResponse();
+                PopOldestLines();
+            }
+        }
+
+        public int? RealTimeClock
+        {
+            get
+            {
+                IssueCommand(new ExtendedATCommand(ExtendedATCommand.Groups.Cellular, "CLK", false));
+                WaitForCommandResponse();
+                return int.Parse(PopOldestLines()[0]);
+            }
+        }
+        public string ManufacturerIdentity
+        {
+            get
+            {
+                IssueCommand(new ExtendedATCommand(ExtendedATCommand.Groups.Cellular, "GMI", false));
+                WaitForCommandResponse();
+                return PopOldestLines()[0];
+            }
+        }
+        public string ModelIdentity
+        {
+            get
+            {
+                IssueCommand(new ExtendedATCommand(ExtendedATCommand.Groups.Cellular, "GMM", false));
+                WaitForCommandResponse();
+                return PopOldestLines()[0];
+            }
+        }
+        public string Revision
+        {
+            get
+            {
+                IssueCommand(new ExtendedATCommand(ExtendedATCommand.Groups.Cellular, "GMR", false));
+                WaitForCommandResponse();
+                return PopOldestLines()[0];
+            }
+        }
+        public string SerialNumber
+        {
+            get
+            {
+                IssueCommand(new ExtendedATCommand(ExtendedATCommand.Groups.Cellular, "GSN", false));
+                WaitForCommandResponse();
+                return PopOldestLines()[0];
+            }
+        }
 
         public ATCommandResponse<bool> SetIndicatorEventReporting(IndicatorEventReporting value)
         {

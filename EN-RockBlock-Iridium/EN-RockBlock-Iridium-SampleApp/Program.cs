@@ -13,8 +13,7 @@ namespace EN.RockBlockIridium.SampleApp
             try
             {
                 isu.Open();
-
-                var confs = isu.GetConfigurations();
+                Console.WriteLine(isu.SerialNumber);
             }
             catch (Exception ex)
             {

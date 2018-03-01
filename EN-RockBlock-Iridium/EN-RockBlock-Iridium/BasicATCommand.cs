@@ -19,7 +19,7 @@ namespace EN.RockBlockIridium
             FlowControl,
             ViewConfigs,
             StoreActiveConfig,
-            DesignDefaultResetProfile,
+            DesignateDefaultResetProfile,
             DisplayRegisters,
             FlushToEEPROM,
             RadioActivity,
