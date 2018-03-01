@@ -7,6 +7,7 @@ namespace EN.RockBlockIridium
     {
         public enum Commands
         {
+            Empty,
             RepeatLastCommand,
             Echo,
             Identification,
@@ -27,6 +28,7 @@ namespace EN.RockBlockIridium
 
         private readonly static string[] CommandStrings =
         {
+            "",
             "A/",
             "E{0}",
             "I{0}",

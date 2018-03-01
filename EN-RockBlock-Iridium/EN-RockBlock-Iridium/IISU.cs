@@ -3,9 +3,11 @@ using System.Collections.Generic;
 
 namespace EN.RockBlockIridium
 {
+    public delegate T Parse<T>(List<string> lines, bool OK);
+
     public interface IISU
     {
-        ATCommandResponse<T> RepeatLastCommand<T>();
+        ATCommandResponse<T> RepeatLastCommand<T>(Parse<T> parser);
 
         ATCommandResponse<bool> RestoreFactorySettings(int configuration);
         ATCommandResponse<bool> SoftReset(int configuration);

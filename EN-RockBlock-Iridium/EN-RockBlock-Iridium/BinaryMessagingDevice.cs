@@ -8,5 +8,10 @@ namespace EN.RockBlockIridium
     public class BinaryMessagingDevice : ISU
     {
         // TODO
+
+        public BinaryMessagingDevice(string COMPort)
+            : base(COMPort)
+        {
+        }
     }
 }

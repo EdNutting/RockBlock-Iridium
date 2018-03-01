@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EN-RockBlock-Iridium", "EN-RockBlock-Iridium\EN-RockBlock-Iridium.csproj", "{24268916-673F-4820-8891-A3B893D70002}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EN-RockBlock-Iridium-SampleApp", "EN-RockBlock-Iridium-SampleApp\EN-RockBlock-Iridium-SampleApp.csproj", "{D1840D80-DAE4-4E0D-9740-1B87723EA145}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{24268916-673F-4820-8891-A3B893D70002}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{24268916-673F-4820-8891-A3B893D70002}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{24268916-673F-4820-8891-A3B893D70002}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1840D80-DAE4-4E0D-9740-1B87723EA145}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1840D80-DAE4-4E0D-9740-1B87723EA145}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1840D80-DAE4-4E0D-9740-1B87723EA145}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1840D80-DAE4-4E0D-9740-1B87723EA145}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
