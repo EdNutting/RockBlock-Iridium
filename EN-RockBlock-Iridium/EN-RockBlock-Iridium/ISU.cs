@@ -81,55 +81,71 @@ namespace EN.RockBlockIridium
         {
             //Console.WriteLine(data);
             string[] lines = data.Split("\r\n".ToCharArray());
-            if (BuildingResponseLines.Count > 0)
+            for (int i = 0; i < lines.Length; i++)
             {
-                BuildingResponseLines[BuildingResponseLines.Count - 1] += lines[0];
-            }
-            else
-            {
-                BuildingResponseLines.Add(lines[0]);
-            }
-            for (int i = 1; i < lines.Length; i++)
-            {
-                BuildingResponseLines.Add(lines[i]);
-            }
-            BuildingResponseLines.RemoveAll(x => string.IsNullOrWhiteSpace(x));
-
-            string lastLine = BuildingResponseLines[BuildingResponseLines.Count - 1].Trim();
-            if (lastLine.StartsWith("OK") ||
-                lastLine.StartsWith("ERROR") ||
-                lastLine.StartsWith("HARDWARE FAILURE"))
-            {
-                BufferedResponseLines.Add(BuildingResponseLines);
-                BuildingResponseLines = new List<string>();
-                ResponseReadyEvent.Set();
-            }
-            else if (lastLine.StartsWith("SBDRING"))
-            {
-                BufferedResponseLines.Add(BuildingResponseLines);
-                OnSBDRing.Invoke(this, BuildingResponseLines);
-                BuildingResponseLines = new List<string>();
-                SBDRingEvent.Set();
-            }
-            else if (lastLine.StartsWith("+AREG"))
-            {
-                BufferedResponseLines.Add(BuildingResponseLines);
-                OnAutoRegistration.Invoke(this, BuildingResponseLines);
-                BuildingResponseLines = new List<string>();
-                AutoRegEvent.Set();
-            }
-            else if (lastLine.StartsWith("+CIEV"))
-            {
-                BufferedResponseLines.Add(BuildingResponseLines);
-                OnServiceAvailabilityChange.Invoke(this, BuildingResponseLines);
-                BuildingResponseLines = new List<string>();
-                ServAvailChngEvent.Set();
-            }
-            else
-            {
-                if (data.EndsWith("\r") || data.EndsWith("\n"))
+                if (BuildingResponseLines.Count - i > 0)
                 {
-                    BuildingResponseLines.Add("");
+                    BuildingResponseLines[BuildingResponseLines.Count - 1] += lines[i++];
+                }
+                else
+                {
+                    BuildingResponseLines.Add(lines[i++]);
+                }
+                for (; i < lines.Length; i++)
+                {
+                    BuildingResponseLines.Add(lines[i]);
+                    if (lines[i].StartsWith("OK") ||
+                        lines[i].StartsWith("READY") ||
+                        lines[i].StartsWith("ERROR") ||
+                        lines[i].StartsWith("HARDWARE FAILURE") ||
+                        lines[i].StartsWith("SBDRING") ||
+                        lines[i].StartsWith("+AREG") ||
+                        lines[i].StartsWith("+CIEV"))
+                    {
+                        break;
+                    }
+                }
+                BuildingResponseLines.RemoveAll(x => string.IsNullOrWhiteSpace(x));
+
+                if (BuildingResponseLines.Count > 0)
+                {
+                    string lastLine = BuildingResponseLines[BuildingResponseLines.Count - 1].Trim();
+                    if (lastLine.StartsWith("OK") ||
+                        lastLine.StartsWith("ERROR") ||
+                        lastLine.StartsWith("HARDWARE FAILURE"))
+                    {
+                        BufferedResponseLines.Add(BuildingResponseLines);
+                        BuildingResponseLines = new List<string>();
+                        ResponseReadyEvent.Set();
+                    }
+                    else if (lastLine.StartsWith("SBDRING"))
+                    {
+                        BufferedResponseLines.Add(BuildingResponseLines);
+                        OnSBDRing.Invoke(this, BuildingResponseLines);
+                        BuildingResponseLines = new List<string>();
+                        SBDRingEvent.Set();
+                    }
+                    else if (lastLine.StartsWith("+AREG"))
+                    {
+                        BufferedResponseLines.Add(BuildingResponseLines);
+                        OnAutoRegistration.Invoke(this, BuildingResponseLines);
+                        BuildingResponseLines = new List<string>();
+                        AutoRegEvent.Set();
+                    }
+                    else if (lastLine.StartsWith("+CIEV"))
+                    {
+                        BufferedResponseLines.Add(BuildingResponseLines);
+                        OnServiceAvailabilityChange.Invoke(this, BuildingResponseLines);
+                        BuildingResponseLines = new List<string>();
+                        ServAvailChngEvent.Set();
+                    }
+                    else
+                    {
+                        if (data.EndsWith("\r") || data.EndsWith("\n"))
+                        {
+                            BuildingResponseLines.Add("");
+                        }
+                    }
                 }
             }
         }
@@ -193,7 +209,7 @@ namespace EN.RockBlockIridium
             return new ATCommandResponse<T>(data, !OK, lines);
         }
 
-        private List<string> PopOldestLines()
+        public List<string> PopOldestLines()
         {
             List<string> lines = BufferedResponseLines[0];
             BufferedResponseLines.RemoveAt(0);
@@ -558,11 +574,20 @@ namespace EN.RockBlockIridium
 
         public ATCommandResponse<bool> SetIndicatorEventReporting(IndicatorEventReporting value)
         {
-            throw new NotImplementedException();
+            IssueCommand(new ExtendedATCommand(ExtendedATCommand.Groups.Cellular, "IER", false,
+                value.Enable ? 1 : 0, value.ReportSignalQuality ? 1 : 0, value.ReportServiceAvailabilityChanges ? 1 : 0));
+            WaitForCommandResponse();
+            return ParseResponse(PopOldestLines(), (x, OK) => OK);
         }
         public ATCommandResponse<IndicatorEventReporting> GetIndicatorEventReporting()
         {
-            throw new NotImplementedException();
+            IssueCommand(new ExtendedATCommand(ExtendedATCommand.Groups.Cellular, "IER?", false));
+            WaitForCommandResponse();
+            return ParseResponse(PopOldestLines(), (lines, OK) =>
+            {
+                string[] lineParts = lines[0].Split(":".ToCharArray())[1].Split(",".ToCharArray());
+                return new IndicatorEventReporting(lineParts[0] == "1", lineParts[1] == "1", lineParts[2] == "1");
+            });
         }
         public ATCommandResponse<IndicatorEventReporting.Support> TestIndicatorEventReporting()
         {
